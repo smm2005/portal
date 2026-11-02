@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as ResourcesRouteImport } from './routes/resources'
 import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as PickupRouteImport } from './routes/pickup'
 import { Route as OfficeHoursRouteImport } from './routes/office-hours'
 import { Route as EventsRouteImport } from './routes/events'
 import { Route as ContactRouteImport } from './routes/contact'
@@ -36,6 +37,11 @@ const ResourcesRoute = ResourcesRouteImport.update({
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PickupRoute = PickupRouteImport.update({
+  id: '/pickup',
+  path: '/pickup',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OfficeHoursRoute = OfficeHoursRouteImport.update({
@@ -95,6 +101,7 @@ export interface FileRoutesByFullPath {
   '/contact': typeof ContactRoute
   '/events': typeof EventsRoute
   '/office-hours': typeof OfficeHoursRoute
+  '/pickup': typeof PickupRoute
   '/privacy': typeof PrivacyRoute
   '/resources': typeof ResourcesRoute
   '/terms': typeof TermsRoute
@@ -110,6 +117,7 @@ export interface FileRoutesByTo {
   '/contact': typeof ContactRoute
   '/events': typeof EventsRoute
   '/office-hours': typeof OfficeHoursRoute
+  '/pickup': typeof PickupRoute
   '/privacy': typeof PrivacyRoute
   '/resources': typeof ResourcesRoute
   '/terms': typeof TermsRoute
@@ -126,6 +134,7 @@ export interface FileRoutesById {
   '/contact': typeof ContactRoute
   '/events': typeof EventsRoute
   '/office-hours': typeof OfficeHoursRoute
+  '/pickup': typeof PickupRoute
   '/privacy': typeof PrivacyRoute
   '/resources': typeof ResourcesRoute
   '/terms': typeof TermsRoute
@@ -143,6 +152,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/events'
     | '/office-hours'
+    | '/pickup'
     | '/privacy'
     | '/resources'
     | '/terms'
@@ -158,6 +168,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/events'
     | '/office-hours'
+    | '/pickup'
     | '/privacy'
     | '/resources'
     | '/terms'
@@ -173,6 +184,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/events'
     | '/office-hours'
+    | '/pickup'
     | '/privacy'
     | '/resources'
     | '/terms'
@@ -189,6 +201,7 @@ export interface RootRouteChildren {
   ContactRoute: typeof ContactRoute
   EventsRoute: typeof EventsRoute
   OfficeHoursRoute: typeof OfficeHoursRoute
+  PickupRoute: typeof PickupRoute
   PrivacyRoute: typeof PrivacyRoute
   ResourcesRoute: typeof ResourcesRoute
   TermsRoute: typeof TermsRoute
@@ -220,6 +233,13 @@ declare module '@tanstack/react-router' {
       path: '/privacy'
       fullPath: '/privacy'
       preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pickup': {
+      id: '/pickup'
+      path: '/pickup'
+      fullPath: '/pickup'
+      preLoaderRoute: typeof PickupRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/office-hours': {
@@ -301,6 +321,7 @@ const rootRouteChildren: RootRouteChildren = {
   ContactRoute: ContactRoute,
   EventsRoute: EventsRoute,
   OfficeHoursRoute: OfficeHoursRoute,
+  PickupRoute: PickupRoute,
   PrivacyRoute: PrivacyRoute,
   ResourcesRoute: ResourcesRoute,
   TermsRoute: TermsRoute,

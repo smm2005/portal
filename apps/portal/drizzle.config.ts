@@ -5,7 +5,7 @@ import { join } from 'node:path'
 
 const repoRoot = fileURLToPath(new URL('../..', import.meta.url))
 
-config({ path: [join(repoRoot, '.env.local'), join(repoRoot, '.env')] })
+config({ path: [join(repoRoot, '.env.local'), join(repoRoot, '.env')]})
 
 export default defineConfig({
   out: './drizzle',

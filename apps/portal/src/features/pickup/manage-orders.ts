@@ -5,9 +5,6 @@ import {
 } from 'square'
 
 import { createServerFn } from '@tanstack/react-start'
-import { QueryClient } from '@tanstack/react-query'
-
-import { createTestOrder } from './make-orders'
 
 function requiredEnvironment(name: string) {
   const value = process.env[name]

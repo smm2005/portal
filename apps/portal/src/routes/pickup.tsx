@@ -59,7 +59,20 @@ function Pickup() {
                     </h2>
                     <p>
                         <Suspense fallback={<p>Loading data...</p>}>
-                            {orders}
+                            {
+                                orders?.map(order => {
+                                    const entry = order
+                                    return (
+                                        <tr>
+                                            {
+                                                entry?.map(ent => {
+                                                    return ent.map(item => {return <td>{item}</td>})
+                                                })
+                                            }
+                                        </tr>
+                                    )
+                                })
+                            }
                         </Suspense>
                     </p>
                 </main>

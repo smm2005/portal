@@ -17,6 +17,13 @@ const client = new SquareClient({
     environment: SquareEnvironment.Sandbox,
 })
 
+type Order = {
+    location: string,
+    createdAt: string,
+    quantity: string,
+    catalogId: string
+}
+
 const getOrderEntries = createServerFn({method: 'POST'}).handler(async () => {
     try {
         const orders = await client.orders.search({
@@ -91,17 +98,21 @@ export const getPrimaryOrderDetails = createServerFn({method: 'POST'}).handler(a
         case 'undefined':
             return 'no valid orders'
         default:
+            var array : Order[] | undefined = []
             const primaryOrderDetails = orderDetails.map(async detail => {
                 const order = detail?.order
                 const items = order?.lineItems
-                const itemArray = items?.map(item => {
-                    return [String(order?.locationId), String(order?.createdAt), item.quantity, String(item.catalogObjectId)]
+                const itemArray = items?.forEach(item => {
+                    const orderDetail : Order = {
+                        location: String(order?.locationId),
+                        createdAt: String(order?.createdAt),
+                        quantity: item.quantity,
+                        catalogId: String(item.catalogObjectId)
+                    }
+                    array?.push(orderDetail)
                 })
-                return itemArray
             })
-            return Promise.all(primaryOrderDetails)
+            return array
     }
 })
-
-// export const details = await getPrimaryOrderDetails()
 

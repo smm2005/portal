@@ -1,12 +1,22 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { getPortalShell } from '#/auth/shell'
 import { AccessDenied, SignIn } from '../components/auth-state'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
+
+import { getCoreRowModel, getSortedRowModel, flexRender, useReactTable } from '@tanstack/react-table'
+import type { Table } from '@tanstack/react-table'
 
 import { getPrimaryOrderDetails } from '../features/pickup/manage-orders'
-// import { createTestOrder } from '../features/pickup/make-orders'
+import { createTestOrder } from '../features/pickup/make-orders'
 
 import { Suspense } from 'react'
+
+type Order = {
+    location: string,
+    createdAt: string,
+    quantity: string,
+    catalogId: string
+}
 
 export const Route = createFileRoute('/pickup')({
   component: Pickup,
@@ -17,8 +27,17 @@ export const Route = createFileRoute('/pickup')({
   }
 })
 
+
 function Pickup() {
-    const [orders, setOrders] = useState<(string[][] | undefined)[]>()
+    
+    const [data, setData] = useState<Order[]>([])
+
+    const columns = useMemo(() => [
+        {accessorKey: 'location', header: 'Location'},
+        {accessorKey: 'createdAt', header: 'Created At'},
+        {accessorKey: 'quantity', header: 'Quantity'},
+        {accessorKey: 'catalogId', header: 'Catalog ID'}
+    ], [])
 
     useEffect(() => {
         getPrimaryOrderDetails()
@@ -27,12 +46,20 @@ function Pickup() {
             switch (obj){
                 case 'no valid orders':
                     break
+                case undefined:
+                    break
                 default:
-                    setOrders(obj)
+                    setData([...obj])
             }
         })
         .catch(err => err)
     }, [])
+
+    const table = useReactTable({
+        data: [...data],
+        columns: columns,
+        getCoreRowModel: getCoreRowModel()
+    })
 
     const {shell} = Route.useLoaderData()
 
@@ -54,30 +81,44 @@ function Pickup() {
                     <h2 className="text-xl font-semibold text-foreground tracking-tight">
                         Orders Pending Pickup
                     </h2>
+                        <Suspense fallback={<p>Loading data...</p>}>
+                            <table>
+                                <thead>
+                                    <Suspense fallback={<p>Loading data...</p>}>
+                                        {
+                                            table.getHeaderGroups().map((headerGroup) => (
+                                                <tr key={headerGroup.id}>
+                                                    {headerGroup.headers.map(header => (
+                                                        <th key={header.id}>
+                                                            {flexRender(header.column.columnDef.header, header.getContext())}
+                                                        </th>
+                                                    ))}
+                                                </tr>
+                                            ))
+                                        }
+                                    </Suspense>
+                                </thead>
+                                <tbody>
+                                    <Suspense fallback={<p>Loading data...</p>}>
+                                        {table.getRowModel().rows.map(row => (
+                                            <tr key={row.id}>
+                                                {row.getVisibleCells().map(cell => (
+                                                    <td key={cell.id}>
+                                                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                                    </td>
+                                                ))}
+                                            </tr>
+                                        ))}
+                                    </Suspense>
+                                </tbody>
+                            </table>
+                        </Suspense>
                     <h2 className="text-xl font-semibold text-foreground tracking-tight">
                         Completed Orders
                     </h2>
-                    <p>
-                        <Suspense fallback={<p>Loading data...</p>}>
-                            {
-                                orders?.map(order => {
-                                    const entry = order
-                                    return (
-                                        <tr>
-                                            {
-                                                entry?.map(ent => {
-                                                    return ent.map(item => {return <td>{item}</td>})
-                                                })
-                                            }
-                                        </tr>
-                                    )
-                                })
-                            }
-                        </Suspense>
-                    </p>
                 </main>
             </div>
         )
     }
-    console.log(orders)
+    console.log(data)
 }

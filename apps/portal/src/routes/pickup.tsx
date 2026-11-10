@@ -1,21 +1,39 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { getPortalShell } from '#/auth/shell'
 import { AccessDenied, SignIn } from '../components/auth-state'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, type InputHTMLAttributes } from 'react'
 
-import { getCoreRowModel, getSortedRowModel, flexRender, useReactTable } from '@tanstack/react-table'
-import type { Table } from '@tanstack/react-table'
+import {
+    type Column,
+    type ColumnDef,
+    type ColumnMeta,
+    type RowData,
+    type ColumnFiltersState,
+    getCoreRowModel,
+    getSortedRowModel, 
+    getFilteredRowModel,
+    flexRender, 
+    useReactTable } from '@tanstack/react-table'
 
 import { getPrimaryOrderDetails } from '../features/pickup/manage-orders'
 import { createTestOrder } from '../features/pickup/make-orders'
 
 import { Suspense } from 'react'
 
+declare module '@tanstack/react-table' {
+    interface ColumnMeta<TData extends RowData, TValue> {
+        filterVariant?: 'text' | 'range' | 'select'
+    }
+}
+
 type Order = {
-    location: string,
+    orderNumber: string,
+    studentName: string,
+    email: string,
+    item: string,
+    quantity: number,
     createdAt: string,
-    quantity: string,
-    catalogId: string
+    isPickedUp: boolean
 }
 
 export const Route = createFileRoute('/pickup')({
@@ -27,16 +45,85 @@ export const Route = createFileRoute('/pickup')({
   }
 })
 
+// Filter component to support table filtering
+const Filter = ({column} : { column: Column<any,unknown> }) => {
+    const columnFilterValue = column.getFilterValue()
+    const { filterVariant } = column.columnDef.meta ?? {}
+
+    return (
+        <div>
+            <div>
+                <DebouncedInput
+                    type="number"
+                    value={
+                        (columnFilterValue as [number, number])?.[0] ?? ''
+                    }
+                    onChange={(value) => {
+                        column.setFilterValue((old: [number, number]) => [value, old?.[1]])
+                    }}
+                    placeholder={'Min'}
+                />
+                <DebouncedInput
+                    type="number"
+                    value={
+                        (columnFilterValue as [number, number])?.[1] ?? ''
+                    }
+                    onChange={(value) => {
+                        column.setFilterValue((old: [number, number]) => [old?.[0],  value])
+                    }}
+                    placeholder={'Max'}
+                />
+            </div>
+        </div>
+    )
+}
+
+const DebouncedInput = ({value: initialValue, onChange, debounce=500, ...props}
+    : {
+        value: string | number
+        onChange: (value: string | number) => void
+        debounce?: number
+    } & Omit<InputHTMLAttributes<HTMLInputElement>, 'onChange'>
+) => {
+    const [value, setValue] = useState(initialValue)
+    useEffect(() => {
+        setValue(initialValue)
+    }, [initialValue])
+
+    useEffect(() => {
+        const timeout = setTimeout(() => {
+            onChange(value)
+        }, debounce)
+
+        return () => clearTimeout(timeout)
+    }, [value])
+
+    return (
+        <input 
+            {...props}
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+        />
+    )
+
+}
 
 function Pickup() {
     
     const [data, setData] = useState<Order[]>([])
 
-    const columns = useMemo(() => [
-        {accessorKey: 'location', header: 'Location'},
-        {accessorKey: 'createdAt', header: 'Created At'},
-        {accessorKey: 'quantity', header: 'Quantity'},
-        {accessorKey: 'catalogId', header: 'Catalog ID'}
+    const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
+    
+    const [checked, setChecked] = useState<boolean>(false)
+
+    const columns = useMemo<ColumnDef<Order, unknown>[]>(() => [
+        {accessorKey: 'orderNumber', header: 'Order Number', meta: {}},
+        {accessorKey: 'studentName', header: 'Student Name', meta: {}},
+        {accessorKey: 'email', header: 'Email', meta: {}},
+        {accessorKey: 'item', header: 'Item', meta: {filterVariant: 'select'}},
+        {accessorKey: 'quantity', header: 'Quantity', meta: {filterVariant: 'range'}},
+        {accessorKey: 'createdAt', header: 'Created At', meta: {filterVariant: 'range'}},
+        {accessorKey: 'isPickedUp', header: 'Confirm Order Pickup', meta: {}},
     ], [])
 
     useEffect(() => {
@@ -58,7 +145,12 @@ function Pickup() {
     const table = useReactTable({
         data: [...data],
         columns: columns,
-        getCoreRowModel: getCoreRowModel()
+        state: {
+            columnFilters,
+        },
+        getCoreRowModel: getCoreRowModel(),
+        getFilteredRowModel: getFilteredRowModel(),
+        onColumnFiltersChange: setColumnFilters,
     })
 
     const {shell} = Route.useLoaderData()
@@ -78,6 +170,7 @@ function Pickup() {
                 </header>
 
                 <main className="flex flex-col gap-2">
+
                     <h2 className="text-xl font-semibold text-foreground tracking-tight">
                         Orders Pending Pickup
                     </h2>
@@ -91,6 +184,11 @@ function Pickup() {
                                                     {headerGroup.headers.map(header => (
                                                         <th key={header.id}>
                                                             {flexRender(header.column.columnDef.header, header.getContext())}
+                                                            {/*header.column.getCanFilter() ? (
+                                                                <div>
+                                                                    <Filter column={header.column} />
+                                                                </div>
+                                                            ) : null*/}
                                                         </th>
                                                     ))}
                                                 </tr>
@@ -104,7 +202,15 @@ function Pickup() {
                                             <tr key={row.id}>
                                                 {row.getVisibleCells().map(cell => (
                                                     <td key={cell.id}>
-                                                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                                        {
+                                                            (cell.column.columnDef.header == 'Confirm Order Pickup') ? (
+                                                                <input
+                                                                type="checkbox"
+                                                                checked={false}
+                                                                onChange={(e) => setChecked(e.target.checked)}
+                                                                />
+                                                            ) : flexRender(cell.column.columnDef.cell, cell.getContext())
+                                                        }
                                                     </td>
                                                 ))}
                                             </tr>
@@ -120,5 +226,4 @@ function Pickup() {
             </div>
         )
     }
-    console.log(data)
 }

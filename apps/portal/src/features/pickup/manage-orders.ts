@@ -5,6 +5,8 @@ import {
 } from 'square'
 
 import { createServerFn } from '@tanstack/react-start'
+import { createTestOrder } from './make-orders'
+import { test } from 'vitest'
 
 function requiredEnvironment(name: string) {
   const value = process.env[name]
@@ -18,10 +20,13 @@ const client = new SquareClient({
 })
 
 type Order = {
-    location: string,
+    orderNumber: string,
+    studentName: string,
+    email: string,
+    item: string,
+    quantity: number,
     createdAt: string,
-    quantity: string,
-    catalogId: string
+    isPickedUp: boolean
 }
 
 const getOrderEntries = createServerFn({method: 'POST'}).handler(async () => {
@@ -94,20 +99,27 @@ const getOrders = createServerFn({method: 'GET'}).handler(async () => {
 
 export const getPrimaryOrderDetails = createServerFn({method: 'POST'}).handler(async () => {
     const orderDetails = await getOrders()
+
     switch (typeof orderDetails) {
         case 'undefined':
             return 'no valid orders'
         default:
             var array : Order[] | undefined = []
-            const primaryOrderDetails = orderDetails.map(async detail => {
+            orderDetails.forEach(async detail => {
                 const order = detail?.order
+                const customer = await client.customers.get({
+                    customerId: String(order?.customerId)
+                })
                 const items = order?.lineItems
-                const itemArray = items?.forEach(item => {
+                items?.forEach(item => {
                     const orderDetail : Order = {
-                        location: String(order?.locationId),
+                        orderNumber: String(order?.referenceId),
+                        studentName: String(customer.customer?.givenName?.concat(customer.customer?.familyName ?? '')),
+                        email: customer.customer?.emailAddress ?? '',
+                        item: String(item?.name),
+                        quantity: Number(item.quantity),
                         createdAt: String(order?.createdAt),
-                        quantity: item.quantity,
-                        catalogId: String(item.catalogObjectId)
+                        isPickedUp: true
                     }
                     array?.push(orderDetail)
                 })

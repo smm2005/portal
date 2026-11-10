@@ -29,6 +29,7 @@ import {
   Tent,
   History,
   Settings,
+  ShoppingCart
 } from 'lucide-react'
 
 interface MyRouterContext {
@@ -90,6 +91,8 @@ function NavIcon({ label, className }: { label: string; className?: string }) {
       return <Calendar className={className} />
     case 'Account':
       return <User className={className} />
+    case 'Pickup':
+      return <ShoppingCart className={className} />
     case 'Members':
     case 'Board members':
       return <Users className={className} />

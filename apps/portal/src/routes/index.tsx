@@ -11,6 +11,7 @@ import {
   History,
   ArrowRight,
   LayoutDashboard,
+  ShoppingCart
 } from 'lucide-react'
 
 import { navigationForCapabilities } from '../auth/capabilities'
@@ -34,6 +35,8 @@ function NavIcon({ label, className }: { label: string; className?: string }) {
       return <Mail className={className} />
     case 'Events':
       return <Calendar className={className} />
+    case 'Pickup':
+      return <ShoppingCart className={className} />
     case 'Account':
       return <User className={className} />
     case 'Members':

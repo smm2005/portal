@@ -229,6 +229,37 @@ export const shiftSlots = pgTable(
   ],
 )
 
+// Square Orders and Transactions Log
+export const orders = pgTable(
+  'orders',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    createdAt: timestamp('created_at', { withTimezone: true }),
+    pickupAt: timestamp('order_pickup_at', {withTimezone: true}),
+    orderNumber: text('order_number').notNull(),
+    customerName: text('customer_name').notNull(),
+    customerEmail: text('email'),
+    item: text('item').notNull(),
+    quantity: integer('quantity'),
+    status: text('status'),
+    verifiedBy: text('verified_by')
+  }
+)
+
+export const transactions = pgTable(
+  'transactions',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    createdAt: timestamp('created_at', { withTimezone: true }),
+    orderCreatedAt: date('date').notNull(),
+    orderNumber: text('order_number').notNull(),
+    orderId: uuid('order_id')
+      .notNull()
+      .references(() => orders.id)
+  }
+)
+// End Square Transactions Log
+
 export const bookings = pgTable(
   'bookings',
   {

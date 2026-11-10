@@ -60,12 +60,17 @@ export function navigationForCapabilities(
     })
   }
 
-  if (capabilities.boardMember) {
+  if (capabilities.boardMember || capabilities.administrator) {
     navigation.push({
       label: 'Board Member',
       to: '/account',
       hash: 'board-position',
       description: 'Manage USSTM board member details.',
+    })
+    navigation.push({
+      label: 'Pickup',
+      to: '/pickup',
+      description: 'Manage orders from Square merchandise platform.'
     })
   }
 

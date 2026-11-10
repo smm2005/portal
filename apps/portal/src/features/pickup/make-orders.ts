@@ -1,6 +1,9 @@
 import { SquareClient, SquareEnvironment, SquareError } from 'square'
 import { createServerFn } from '@tanstack/react-start'
 
+import { createCustomer } from './make-customers'
+import { randomUUID } from 'crypto'
+
 function requiredEnvironment(name: string) {
   const value = process.env[name]
   if (!value) throw new Error(`${name} is required`)
@@ -13,6 +16,15 @@ const client = new SquareClient({
 })
 
 export const createTestOrder = createServerFn({method : 'POST'}).handler(async () => {
+
+    const customer = await createCustomer({
+        data: {
+            givenName: 'Suhail',
+            familyName: 'Moeen',
+            emailAddress: 'suhail.moeen@test.com'
+        }
+    })
+
     const order = await client.orders.create({
         order: {
             locationId: "LFT1D77946WZ9",
@@ -26,8 +38,11 @@ export const createTestOrder = createServerFn({method : 'POST'}).handler(async (
                         currency: "CAD"
                     }
                 }
-            ]
+            ],
+            customerId: customer.customer?.id
         },
-        idempotencyKey: '123'
+        idempotencyKey: randomUUID()
     })
+
+    return order
 }) 

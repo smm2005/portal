@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { getPortalShell } from '#/auth/shell'
 import { AccessDenied, SignIn } from '../components/auth-state'
-import { useState, useEffect, useMemo, type InputHTMLAttributes } from 'react'
+import React, { useRef, useState, useEffect, useMemo, type InputHTMLAttributes, type ReactNode } from 'react'
 
 import {
     type Column,
@@ -15,8 +15,7 @@ import {
     flexRender, 
     useReactTable } from '@tanstack/react-table'
 
-import { getPrimaryOrderDetails } from '../features/pickup/manage-orders'
-import { createTestOrder } from '../features/pickup/make-orders'
+import { orderDetails } from '../features/pickup/manage-orders'
 
 import { Suspense } from 'react'
 
@@ -108,13 +107,60 @@ const DebouncedInput = ({value: initialValue, onChange, debounce=500, ...props}
 
 }
 
+const Dialog = ({isOpen, onClose, title, children}: {
+    isOpen: boolean
+    onClose: () => void
+    title: string
+    children: ReactNode
+}) => {
+
+    const dialogRef = useRef<HTMLDialogElement>(null)
+
+    const [text, setText] = useState<string>('')
+    
+    useEffect(() => {
+        const dialog = dialogRef.current
+
+        if (!dialog) {
+            console.log("Dialog not detected")
+            return
+        }
+        if (isOpen) {
+            console.log("Dialog set")
+            dialog.showModal()
+        }
+        else {
+            console.log("Dialog close")
+            dialog.close()
+        }
+
+    }, [isOpen])
+
+    return (
+        <dialog ref={dialogRef} className="backdrop:bg-black/50 bg-white p-6 rounded-lg max-w-md w-full">
+            <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-light">{title}</h3>
+            </div>
+            {children}
+            <input type="text" value={text} onChange={(e) => setText(e.target.value)} placeholder="Enter the Order ID" />
+            <button type="button" onClick={onClose}>Close Dialog</button>
+        </dialog>
+    )
+
+}
+
 function Pickup() {
     
-    const [data, setData] = useState<Order[]>([])
-
-    const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
+    const {shell} = Route.useLoaderData()
     
+    const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
     const [checked, setChecked] = useState<boolean>(false)
+    const [data, setData] = useState<Order[]>([])
+    const [isOpen, setIsOpen] = useState(false)
+
+    useEffect(() => {
+        setData(orderDetails)
+    }, [])
 
     const columns = useMemo<ColumnDef<Order, unknown>[]>(() => [
         {accessorKey: 'orderNumber', header: 'Order Number', meta: {}},
@@ -126,24 +172,8 @@ function Pickup() {
         {accessorKey: 'isPickedUp', header: 'Confirm Order Pickup', meta: {}},
     ], [])
 
-    useEffect(() => {
-        getPrimaryOrderDetails()
-        .then(res => res)
-        .then(obj => {
-            switch (obj){
-                case 'no valid orders':
-                    break
-                case undefined:
-                    break
-                default:
-                    setData([...obj])
-            }
-        })
-        .catch(err => err)
-    }, [])
-
     const table = useReactTable({
-        data: [...data],
+        data: data,
         columns: columns,
         state: {
             columnFilters,
@@ -152,8 +182,6 @@ function Pickup() {
         getFilteredRowModel: getFilteredRowModel(),
         onColumnFiltersChange: setColumnFilters,
     })
-
-    const {shell} = Route.useLoaderData()
 
     if (shell.kind == 'anonymous') return <SignIn />
     if (shell.kind == 'denied') return <AccessDenied />
@@ -170,7 +198,11 @@ function Pickup() {
                 </header>
 
                 <main className="flex flex-col gap-2">
-
+                    <button type="button" onClick={() => setIsOpen(true)}>Click Me</button>
+                    <Dialog isOpen={isOpen} onClose={() => setIsOpen(false)} title="Dialog test">
+                        <>
+                        </>
+                    </Dialog>
                     <h2 className="text-xl font-semibold text-foreground tracking-tight">
                         Orders Pending Pickup
                     </h2>
@@ -184,11 +216,6 @@ function Pickup() {
                                                     {headerGroup.headers.map(header => (
                                                         <th key={header.id}>
                                                             {flexRender(header.column.columnDef.header, header.getContext())}
-                                                            {/*header.column.getCanFilter() ? (
-                                                                <div>
-                                                                    <Filter column={header.column} />
-                                                                </div>
-                                                            ) : null*/}
                                                         </th>
                                                     ))}
                                                 </tr>
@@ -202,15 +229,7 @@ function Pickup() {
                                             <tr key={row.id}>
                                                 {row.getVisibleCells().map(cell => (
                                                     <td key={cell.id}>
-                                                        {
-                                                            (cell.column.columnDef.header == 'Confirm Order Pickup') ? (
-                                                                <input
-                                                                type="checkbox"
-                                                                checked={false}
-                                                                onChange={(e) => setChecked(e.target.checked)}
-                                                                />
-                                                            ) : flexRender(cell.column.columnDef.cell, cell.getContext())
-                                                        }
+                                                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
                                                     </td>
                                                 ))}
                                             </tr>

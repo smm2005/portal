@@ -102,7 +102,7 @@ export const getPrimaryOrderDetails = createServerFn({method: 'POST'}).handler(a
 
     switch (typeof orderDetails) {
         case 'undefined':
-            return 'no valid orders'
+            return []
         default:
             var array : Order[] | undefined = []
             orderDetails.forEach(async detail => {
@@ -124,7 +124,9 @@ export const getPrimaryOrderDetails = createServerFn({method: 'POST'}).handler(a
                     array?.push(orderDetail)
                 })
             })
+            console.log(array)
             return array
     }
 })
 
+export const orderDetails = await getPrimaryOrderDetails()

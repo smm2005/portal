@@ -43,6 +43,4 @@ export const createTestOrder = createServerFn({method : 'POST'}).handler(async (
         },
         idempotencyKey: randomUUID()
     })
-
-    return order
 }) 

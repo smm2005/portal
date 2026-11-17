@@ -8,6 +8,10 @@ import { createServerFn } from '@tanstack/react-start'
 import { createTestOrder } from './make-orders'
 import { test } from 'vitest'
 
+import { getDb } from '../../db/index.js'
+import { orders } from '../../db/schema.js'
+import { desc } from 'drizzle-orm'
+
 function requiredEnvironment(name: string) {
   const value = process.env[name]
   if (!value) throw new Error(`${name} is required`)
@@ -129,4 +133,32 @@ export const getPrimaryOrderDetails = createServerFn({method: 'POST'}).handler(a
     }
 })
 
-export const orderDetails = await getPrimaryOrderDetails()
+const insertOrdersInTable = createServerFn({method: 'POST'}).handler(async () => {
+    const orderDetails = await getPrimaryOrderDetails()
+    const db = getDb()
+
+    orderDetails.forEach(async (detail) => {
+        const entry = await db
+        .insert(orders)
+        .values({
+            orderNumber: detail.orderNumber,
+            customerName: detail.studentName,
+            customerEmail: detail.email,
+            item: detail.item,
+            quantity: detail.quantity,
+            status: detail.isPickedUp,
+            verifiedBy: null 
+        })
+
+        return entry
+    })
+})
+
+export const getOrdersFromTable = createServerFn({method: 'GET'}).handler(async () => {
+    const db = getDb()
+    
+    const rows = await db.select()
+        .from(orders)
+    
+    return rows
+})

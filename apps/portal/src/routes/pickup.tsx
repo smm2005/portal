@@ -15,9 +15,11 @@ import {
     flexRender, 
     useReactTable } from '@tanstack/react-table'
 
-import { orderDetails } from '../features/pickup/manage-orders'
+import { getDb } from '../db/index.js'
+import { getOrdersFromTable } from '../features/pickup/manage-orders.ts'
 
 import { Suspense } from 'react'
+import { orders } from '../db/schema.js'
 
 declare module '@tanstack/react-table' {
     interface ColumnMeta<TData extends RowData, TValue> {
@@ -79,8 +81,8 @@ const Filter = ({column} : { column: Column<any,unknown> }) => {
 
 const DebouncedInput = ({value: initialValue, onChange, debounce=500, ...props}
     : {
-        value: string | number
-        onChange: (value: string | number) => void
+        value: string
+        onChange: (value: string) => void
         debounce?: number
     } & Omit<InputHTMLAttributes<HTMLInputElement>, 'onChange'>
 ) => {
@@ -107,23 +109,23 @@ const DebouncedInput = ({value: initialValue, onChange, debounce=500, ...props}
 
 }
 
-const Dialog = ({isOpen, onClose, title, children}: {
+const Dialog = ({isOpen, onClose, title, value, children}: {
     isOpen: boolean
     onClose: () => void
     title: string
+    value: string
     children: ReactNode
 }) => {
 
     const dialogRef = useRef<HTMLDialogElement>(null)
 
     const [text, setText] = useState<string>('')
-    
+
     useEffect(() => {
         const dialog = dialogRef.current
 
-        if (!dialog) {
-            console.log("Dialog not detected")
-            return
+        if (!dialog){
+            return 
         }
         if (isOpen) {
             console.log("Dialog set")
@@ -137,13 +139,15 @@ const Dialog = ({isOpen, onClose, title, children}: {
     }, [isOpen])
 
     return (
-        <dialog ref={dialogRef} className="backdrop:bg-black/50 bg-white p-6 rounded-lg max-w-md w-full">
+        <dialog ref={dialogRef} className="backdrop:bg-black/50 bg-white p-6 rounded-lg max-w-sm m-auto w-full">
             <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-light">{title}</h3>
             </div>
             {children}
-            <input type="text" value={text} onChange={(e) => setText(e.target.value)} placeholder="Enter the Order ID" />
-            <button type="button" onClick={onClose}>Close Dialog</button>
+            <div className="flex justify-center items-center flex-col gap-2">
+                <DebouncedInput type="text" className="p-2 m-1 border-2 rounded-sm" value={text} onChange={(e) => {if (e === text) {onClose} }} placeholder="Enter the Order ID" />
+                <button type="button" className="p-2 text-white hover:bg-sky-700 bg-sky-600 w-2/5 rounded-sm" onClick={onClose}>Close Dialog</button>
+            </div>
         </dialog>
     )
 
@@ -155,12 +159,57 @@ function Pickup() {
     
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
     const [checked, setChecked] = useState<boolean>(false)
-    const [data, setData] = useState<Order[]>([])
-    const [isOpen, setIsOpen] = useState(false)
+    // const [data, setData] = useState<Order[]>([])
 
+    /* To uncomment later, following success of order data retrieval
     useEffect(() => {
-        setData(orderDetails)
+
+        getOrdersFromTable()
+        .then(res => res)
+        .then(res => {
+            var orders : Order[] = []
+            res.forEach(orderDetail => {
+                const orderObject : Order = {
+                    orderNumber: orderDetail.orderNumber,
+                    studentName: orderDetail.customerName,
+                    email: orderDetail.customerEmail ?? '',
+                    item: orderDetail.item,
+                    quantity: orderDetail.quantity ?? 0,
+                    createdAt: String(orderDetail.createdAt),
+                    isPickedUp: orderDetail.status ?? false
+                }
+                orders.push(orderObject)
+            })
+            setData(orders)
+        })
+        .catch(err => console.error(err))
     }, [])
+    */
+
+    let order1 : Order = {
+            orderNumber: "20fxVWnTT",
+            studentName: "Suhail Moeen",
+            email: "suhail.moeen@outlook.com",
+            item: "Pair of Pliers",
+            quantity: 17,
+            createdAt: "November 4, 2026",
+            isPickedUp: false
+    }
+
+    let order2 : Order = {
+            orderNumber: "20fxVWnTT",
+            studentName: "Steven Henchcliffe",
+            email: "steven.henchcliffe@outlook.com",
+            item: "Pair of Scissors",
+            quantity: 18,
+            createdAt: "November 9, 2026",
+            isPickedUp: true
+    }
+
+    const data = useMemo(() => (
+        [order1, order2]
+    ), [order1, order2])
+
 
     const columns = useMemo<ColumnDef<Order, unknown>[]>(() => [
         {accessorKey: 'orderNumber', header: 'Order Number', meta: {}},
@@ -169,7 +218,24 @@ function Pickup() {
         {accessorKey: 'item', header: 'Item', meta: {filterVariant: 'select'}},
         {accessorKey: 'quantity', header: 'Quantity', meta: {filterVariant: 'range'}},
         {accessorKey: 'createdAt', header: 'Created At', meta: {filterVariant: 'range'}},
-        {accessorKey: 'isPickedUp', header: 'Confirm Order Pickup', meta: {}},
+        {accessorKey: 'isPickedUp', 
+            header: 'Confirm Order Pickup', 
+            meta: {},
+            cell: ({cell, row}) => { 
+            
+            const [isOpen, setIsOpen] = useState<boolean>(false)    
+            
+            return (
+                    <div>
+                        <input type="checkbox" checked={row.original.isPickedUp} onChange={() => setIsOpen(true)}></input>
+                        <Dialog isOpen={isOpen} onClose={() => setIsOpen(false)} title="Confirm Order Pickup" value={row.original.orderNumber}>
+                            <h4>
+                                Enter the Order ID provided by Square for the user's order to confirm order pickup.
+                            </h4>
+                        </Dialog>
+                    </div>
+            )}
+        },
     ], [])
 
     const table = useReactTable({
@@ -198,11 +264,6 @@ function Pickup() {
                 </header>
 
                 <main className="flex flex-col gap-2">
-                    <button type="button" onClick={() => setIsOpen(true)}>Click Me</button>
-                    <Dialog isOpen={isOpen} onClose={() => setIsOpen(false)} title="Dialog test">
-                        <>
-                        </>
-                    </Dialog>
                     <h2 className="text-xl font-semibold text-foreground tracking-tight">
                         Orders Pending Pickup
                     </h2>

@@ -241,9 +241,9 @@ export const orders = pgTable(
     customerEmail: text('email'),
     item: text('item').notNull(),
     quantity: integer('quantity'),
-    status: text('status'),
+    status: boolean('status'),
     verifiedBy: text('verified_by')
-  }
+  },
 )
 
 export const transactions = pgTable(

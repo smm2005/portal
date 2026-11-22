@@ -28,6 +28,7 @@ const MUTABLE_TABLES = [
   'event_organizers',
   'events',
   'members',
+  'orders',
   'resources',
   'shift_slots',
 ]

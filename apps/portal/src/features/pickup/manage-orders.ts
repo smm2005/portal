@@ -154,7 +154,7 @@ const insertOrdersInTable = createServerFn({method: 'POST'}).handler(async () =>
     })
 })
 
-export const getOrdersFromTable = createServerFn({method: 'GET'}).handler(async () => {
+export const getOrdersFromTable = createServerFn({method: 'POST'}).handler(async () => {
     const db = getDb()
     
     const rows = await db.select()

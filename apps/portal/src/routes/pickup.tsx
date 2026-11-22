@@ -41,12 +41,13 @@ export const Route = createFileRoute('/pickup')({
   component: Pickup,
   loader: async () => {
     return {
+        details: await getOrdersFromTable(),
         shell: await getPortalShell()
     }
   }
 })
 
-// Filter component to support table filtering
+/*
 const Filter = ({column} : { column: Column<any,unknown> }) => {
     const columnFilterValue = column.getFilterValue()
     const { filterVariant } = column.columnDef.meta ?? {}
@@ -78,6 +79,7 @@ const Filter = ({column} : { column: Column<any,unknown> }) => {
         </div>
     )
 }
+*/
 
 const DebouncedInput = ({value: initialValue, onChange, debounce=500, ...props}
     : {
@@ -145,7 +147,7 @@ const Dialog = ({isOpen, onClose, title, value, children}: {
             </div>
             {children}
             <div className="flex justify-center items-center flex-col gap-2">
-                <DebouncedInput type="text" className="p-2 m-1 border-2 rounded-sm" value={text} onChange={(e) => {if (e === text) {onClose} }} placeholder="Enter the Order ID" />
+                <DebouncedInput type="text" className="p-2 m-1 border-2 rounded-sm" value={text} onChange={(e) => {if (e === value) {onClose} }} placeholder="Enter the Order ID" />
                 <button type="button" className="p-2 text-white hover:bg-sky-700 bg-sky-600 w-2/5 rounded-sm" onClick={onClose}>Close Dialog</button>
             </div>
         </dialog>
@@ -155,61 +157,23 @@ const Dialog = ({isOpen, onClose, title, value, children}: {
 
 function Pickup() {
     
-    const {shell} = Route.useLoaderData()
+    const {details, shell} = Route.useLoaderData()
     
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
     const [checked, setChecked] = useState<boolean>(false)
-    // const [data, setData] = useState<Order[]>([])
 
-    /* To uncomment later, following success of order data retrieval
-    useEffect(() => {
-
-        getOrdersFromTable()
-        .then(res => res)
-        .then(res => {
-            var orders : Order[] = []
-            res.forEach(orderDetail => {
-                const orderObject : Order = {
-                    orderNumber: orderDetail.orderNumber,
-                    studentName: orderDetail.customerName,
-                    email: orderDetail.customerEmail ?? '',
-                    item: orderDetail.item,
-                    quantity: orderDetail.quantity ?? 0,
-                    createdAt: String(orderDetail.createdAt),
-                    isPickedUp: orderDetail.status ?? false
-                }
-                orders.push(orderObject)
-            })
-            setData(orders)
-        })
-        .catch(err => console.error(err))
-    }, [])
-    */
-
-    let order1 : Order = {
-            orderNumber: "20fxVWnTT",
-            studentName: "Suhail Moeen",
-            email: "suhail.moeen@outlook.com",
-            item: "Pair of Pliers",
-            quantity: 17,
-            createdAt: "November 4, 2026",
-            isPickedUp: false
-    }
-
-    let order2 : Order = {
-            orderNumber: "20fxVWnTT",
-            studentName: "Steven Henchcliffe",
-            email: "steven.henchcliffe@outlook.com",
-            item: "Pair of Scissors",
-            quantity: 18,
-            createdAt: "November 9, 2026",
-            isPickedUp: true
-    }
-
-    const data = useMemo(() => (
-        [order1, order2]
-    ), [order1, order2])
-
+    const data : Order[] = details.map((order) => {
+        const orderElement : Order = {
+            orderNumber: order.orderNumber,
+            studentName: order.customerName,
+            email: order.customerEmail ?? '',
+            item: order.item,
+            quantity: order.quantity ?? 0,
+            createdAt: String(order.createdAt),
+            isPickedUp: order.status ?? false
+        }
+        return orderElement
+    })
 
     const columns = useMemo<ColumnDef<Order, unknown>[]>(() => [
         {accessorKey: 'orderNumber', header: 'Order Number', meta: {}},
@@ -238,8 +202,19 @@ function Pickup() {
         },
     ], [])
 
-    const table = useReactTable({
-        data: data,
+    const inProgress = useReactTable({
+        data: data.filter(detail => detail.isPickedUp == false),
+        columns: columns,
+        state: {
+            columnFilters,
+        },
+        getCoreRowModel: getCoreRowModel(),
+        getFilteredRowModel: getFilteredRowModel(),
+        onColumnFiltersChange: setColumnFilters,
+    })
+
+    const completed = useReactTable({
+        data: data.filter(detail => detail.isPickedUp == true),
         columns: columns,
         state: {
             columnFilters,
@@ -267,41 +242,73 @@ function Pickup() {
                     <h2 className="text-xl font-semibold text-foreground tracking-tight">
                         Orders Pending Pickup
                     </h2>
-                        <Suspense fallback={<p>Loading data...</p>}>
-                            <table>
-                                <thead>
-                                    <Suspense fallback={<p>Loading data...</p>}>
-                                        {
-                                            table.getHeaderGroups().map((headerGroup) => (
-                                                <tr key={headerGroup.id}>
-                                                    {headerGroup.headers.map(header => (
-                                                        <th key={header.id}>
-                                                            {flexRender(header.column.columnDef.header, header.getContext())}
-                                                        </th>
-                                                    ))}
-                                                </tr>
-                                            ))
-                                        }
-                                    </Suspense>
-                                </thead>
-                                <tbody>
-                                    <Suspense fallback={<p>Loading data...</p>}>
-                                        {table.getRowModel().rows.map(row => (
-                                            <tr key={row.id}>
-                                                {row.getVisibleCells().map(cell => (
-                                                    <td key={cell.id}>
-                                                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                                    </td>
+                    <Suspense fallback={<p>Loading data...</p>}>
+                        <table>
+                            <thead>
+                                <Suspense fallback={<p>Loading data...</p>}>
+                                    {
+                                        inProgress.getHeaderGroups().map((headerGroup) => (
+                                            <tr key={headerGroup.id}>
+                                                {headerGroup.headers.map(header => (
+                                                    <th key={header.id}>
+                                                        {flexRender(header.column.columnDef.header, header.getContext())}
+                                                    </th>
                                                 ))}
                                             </tr>
-                                        ))}
-                                    </Suspense>
-                                </tbody>
-                            </table>
-                        </Suspense>
+                                        ))
+                                    }
+                                </Suspense>
+                            </thead>
+                            <tbody>
+                                <Suspense fallback={<p>Loading data...</p>}>
+                                    {inProgress.getRowModel().rows.map(row => (
+                                        <tr key={row.id}>
+                                            {row.getVisibleCells().map(cell => (
+                                                <td key={cell.id}>
+                                                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                                </td>
+                                            ))}
+                                        </tr>
+                                    ))}
+                                </Suspense>
+                            </tbody>
+                        </table>
+                    </Suspense>
                     <h2 className="text-xl font-semibold text-foreground tracking-tight">
                         Completed Orders
                     </h2>
+                    <Suspense fallback={<p>Loading data...</p>}>
+                        <table>
+                            <thead>
+                                <Suspense fallback={<p>Loading data...</p>}>
+                                    {
+                                        completed.getHeaderGroups().map((headerGroup) => (
+                                            <tr key={headerGroup.id}>
+                                                {headerGroup.headers.map(header => (
+                                                    <th key={header.id}>
+                                                        {flexRender(header.column.columnDef.header, header.getContext())}
+                                                    </th>
+                                                ))}
+                                            </tr>
+                                        ))
+                                    }
+                                </Suspense>
+                            </thead>
+                            <tbody>
+                                <Suspense fallback={<p>Loading data...</p>}>
+                                    {completed.getRowModel().rows.map(row => (
+                                        <tr key={row.id}>
+                                            {row.getVisibleCells().map(cell => (
+                                                <td key={cell.id}>
+                                                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                                </td>
+                                            ))}
+                                        </tr>
+                                    ))}
+                                </Suspense>
+                            </tbody>
+                        </table>
+                    </Suspense>
                 </main>
             </div>
         )

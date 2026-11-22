@@ -3,6 +3,8 @@ import { getPortalShell } from '#/auth/shell'
 import { AccessDenied, SignIn } from '../components/auth-state'
 import React, { useRef, useState, useEffect, useMemo, type InputHTMLAttributes, type ReactNode } from 'react'
 
+import { useRouter } from '@tanstack/react-router'
+
 import {
     type Column,
     type ColumnDef,
@@ -16,7 +18,7 @@ import {
     useReactTable } from '@tanstack/react-table'
 
 import { getDb } from '../db/index.js'
-import { getOrdersFromTable } from '../features/pickup/manage-orders.ts'
+import { insertOrdersInTable, getOrdersFromTable } from '../features/pickup/manage-orders.ts'
 
 import { Suspense } from 'react'
 import { orders } from '../db/schema.js'
@@ -175,6 +177,35 @@ function Pickup() {
         return orderElement
     })
 
+    const SyncOrders = () => {
+        const router = useRouter()
+
+        return (
+            <button onClick={async () => { 
+                await insertOrdersInTable()
+                router.invalidate()
+                }
+            }>
+                Sync Orders
+            </button>
+        )
+    }
+
+    const PickupCell = ({ order } : {order: Order}) => {
+        const [isOpen, setIsOpen] = useState<boolean>(false)    
+            
+        return (
+                <div>
+                    <input type="checkbox" checked={order.isPickedUp} onChange={() => setIsOpen(true)}></input>
+                    <Dialog isOpen={isOpen} onClose={() => setIsOpen(false)} title="Confirm Order Pickup" value={order.orderNumber}>
+                        <h4>
+                            Enter the Order ID provided by Square for the user's order to confirm order pickup.
+                        </h4>
+                    </Dialog>
+                </div>
+        )
+    }
+
     const columns = useMemo<ColumnDef<Order, unknown>[]>(() => [
         {accessorKey: 'orderNumber', header: 'Order Number', meta: {}},
         {accessorKey: 'studentName', header: 'Student Name', meta: {}},
@@ -185,20 +216,7 @@ function Pickup() {
         {accessorKey: 'isPickedUp', 
             header: 'Confirm Order Pickup', 
             meta: {},
-            cell: ({cell, row}) => { 
-            
-            const [isOpen, setIsOpen] = useState<boolean>(false)    
-            
-            return (
-                    <div>
-                        <input type="checkbox" checked={row.original.isPickedUp} onChange={() => setIsOpen(true)}></input>
-                        <Dialog isOpen={isOpen} onClose={() => setIsOpen(false)} title="Confirm Order Pickup" value={row.original.orderNumber}>
-                            <h4>
-                                Enter the Order ID provided by Square for the user's order to confirm order pickup.
-                            </h4>
-                        </Dialog>
-                    </div>
-            )}
+            cell: ({row}) => <PickupCell order={row.original} />
         },
     ], [])
 
@@ -239,6 +257,7 @@ function Pickup() {
                 </header>
 
                 <main className="flex flex-col gap-2">
+                    <SyncOrders />
                     <h2 className="text-xl font-semibold text-foreground tracking-tight">
                         Orders Pending Pickup
                     </h2>

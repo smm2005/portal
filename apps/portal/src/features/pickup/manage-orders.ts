@@ -108,14 +108,16 @@ export const getPrimaryOrderDetails = createServerFn({method: 'POST'}).handler(a
         case 'undefined':
             return []
         default:
-            var array : Order[] | undefined = []
-            orderDetails.forEach(async detail => {
+            const array = await Promise.all(orderDetails.map(async detail => {
                 const order = detail?.order
+
+                if (!order) {return []}
+
                 const customer = await client.customers.get({
                     customerId: String(order?.customerId)
                 })
                 const items = order?.lineItems
-                items?.forEach(item => {
+                return (items ?? []).map(item => {
                     const orderDetail : Order = {
                         orderNumber: String(order?.referenceId),
                         studentName: String(customer.customer?.givenName?.concat(customer.customer?.familyName ?? '')),
@@ -123,18 +125,18 @@ export const getPrimaryOrderDetails = createServerFn({method: 'POST'}).handler(a
                         item: String(item?.name),
                         quantity: Number(item.quantity),
                         createdAt: String(order?.createdAt),
-                        isPickedUp: true
+                        isPickedUp: false
                     }
-                    array?.push(orderDetail)
+                    return orderDetail
                 })
-            })
-            console.log(array)
-            return array
+            }))
+            return array.flat()
     }
 })
 
-const insertOrdersInTable = createServerFn({method: 'POST'}).handler(async () => {
+export const insertOrdersInTable = createServerFn({method: 'POST'}).handler(async () => {
     const orderDetails = await getPrimaryOrderDetails()
+    
     const db = getDb()
 
     orderDetails.forEach(async (detail) => {
@@ -155,10 +157,12 @@ const insertOrdersInTable = createServerFn({method: 'POST'}).handler(async () =>
 })
 
 export const getOrdersFromTable = createServerFn({method: 'POST'}).handler(async () => {
+
     const db = getDb()
     
     const rows = await db.select()
         .from(orders)
     
+    console.log(rows)
     return rows
 })

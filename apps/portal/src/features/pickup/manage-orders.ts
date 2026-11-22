@@ -23,10 +23,12 @@ const client = new SquareClient({
     environment: SquareEnvironment.Sandbox,
 })
 
-type Order = {
+export type Order = {
+    orderId: string,
     orderNumber: string,
     studentName: string,
     email: string,
+    itemId: string,
     item: string,
     quantity: number,
     createdAt: string,
@@ -119,9 +121,11 @@ export const getPrimaryOrderDetails = createServerFn({method: 'POST'}).handler(a
                 const items = order?.lineItems
                 return (items ?? []).map(item => {
                     const orderDetail : Order = {
+                        orderId: String(order?.id),
                         orderNumber: String(order?.referenceId),
                         studentName: String(customer.customer?.givenName?.concat(customer.customer?.familyName ?? '')),
                         email: customer.customer?.emailAddress ?? '',
+                        itemId: String(item?.uid),
                         item: String(item?.name),
                         quantity: Number(item.quantity),
                         createdAt: String(order?.createdAt),
@@ -139,20 +143,22 @@ export const insertOrdersInTable = createServerFn({method: 'POST'}).handler(asyn
     
     const db = getDb()
 
-    orderDetails.forEach(async (detail) => {
+    orderDetails.map(async (detail) => {
         const entry = await db
         .insert(orders)
         .values({
+            orderId: detail.orderId,
             orderNumber: detail.orderNumber,
             customerName: detail.studentName,
             customerEmail: detail.email,
+            itemId: detail.itemId,
             item: detail.item,
             quantity: detail.quantity,
             status: detail.isPickedUp,
             verifiedBy: null 
         })
-
-        return entry
+        .onConflictDoNothing({ target: [ orders.orderId, orders.itemId ]})
+        .returning({id: orders.id})
     })
 })
 

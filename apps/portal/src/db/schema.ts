@@ -236,14 +236,19 @@ export const orders = pgTable(
     id: uuid('id').defaultRandom().primaryKey(),
     createdAt: timestamp('created_at', { withTimezone: true }),
     pickupAt: timestamp('order_pickup_at', {withTimezone: true}),
+    orderId: text('square_order_id').notNull(),
     orderNumber: text('order_number').notNull(),
     customerName: text('customer_name').notNull(),
     customerEmail: text('email'),
+    itemId: text('square_line_item_id'),
     item: text('item').notNull(),
     quantity: integer('quantity'),
     status: boolean('status'),
     verifiedBy: text('verified_by')
   },
+  (table) => [
+    unique('orders_items_unique').on(table.orderId, table.itemId)
+  ],
 )
 
 export const transactions = pgTable(

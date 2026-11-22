@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { getPortalShell } from '#/auth/shell'
 import { AccessDenied, SignIn } from '../components/auth-state'
-import React, { useRef, useState, useEffect, useMemo, type InputHTMLAttributes, type ReactNode } from 'react'
+import { useRef, useState, useEffect, useMemo, type InputHTMLAttributes, type ReactNode } from 'react'
 
 import { useRouter } from '@tanstack/react-router'
 
@@ -17,26 +17,14 @@ import {
     flexRender, 
     useReactTable } from '@tanstack/react-table'
 
-import { getDb } from '../db/index.js'
-import { insertOrdersInTable, getOrdersFromTable } from '../features/pickup/manage-orders.ts'
+import { type Order, insertOrdersInTable, getOrdersFromTable } from '../features/pickup/manage-orders.ts'
 
 import { Suspense } from 'react'
-import { orders } from '../db/schema.js'
 
 declare module '@tanstack/react-table' {
     interface ColumnMeta<TData extends RowData, TValue> {
         filterVariant?: 'text' | 'range' | 'select'
     }
-}
-
-type Order = {
-    orderNumber: string,
-    studentName: string,
-    email: string,
-    item: string,
-    quantity: number,
-    createdAt: string,
-    isPickedUp: boolean
 }
 
 export const Route = createFileRoute('/pickup')({
@@ -166,9 +154,11 @@ function Pickup() {
 
     const data : Order[] = details.map((order) => {
         const orderElement : Order = {
+            orderId: order.orderId,
             orderNumber: order.orderNumber,
             studentName: order.customerName,
             email: order.customerEmail ?? '',
+            itemId: order.itemId ?? '',
             item: order.item,
             quantity: order.quantity ?? 0,
             createdAt: String(order.createdAt),

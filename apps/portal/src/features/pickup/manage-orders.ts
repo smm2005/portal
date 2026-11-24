@@ -51,7 +51,7 @@ const getOrderEntries = createServerFn({method: 'POST'}).handler(async () => {
                     sortOrder: "DESC"
                 }
             },*/
-            limit: 10,
+            limit: 100,
             returnEntries: true
         })
         return orders

@@ -3,6 +3,11 @@ import { getPortalShell } from '#/auth/shell'
 import { AccessDenied, SignIn } from '../components/auth-state'
 import { useRef, useState, useEffect, useMemo, type InputHTMLAttributes, type ReactNode } from 'react'
 
+import {
+    ChevronLeft,
+    ChevronRight
+} from 'lucide-react'
+
 import { useRouter } from '@tanstack/react-router'
 
 import {
@@ -14,6 +19,7 @@ import {
     getCoreRowModel,
     getSortedRowModel, 
     getFilteredRowModel,
+    getPaginationRowModel,
     flexRender, 
     useReactTable } from '@tanstack/react-table'
 
@@ -151,6 +157,10 @@ function Pickup() {
     
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
     const [checked, setChecked] = useState<boolean>(false)
+    const [pagination, setPagination] = useState({
+        pageIndex: 0,
+        pageSize: 10,
+    })
 
     const data : Order[] = details.map((order) => {
         const orderElement : Order = {
@@ -215,10 +225,14 @@ function Pickup() {
         columns: columns,
         state: {
             columnFilters,
+            pagination,
         },
+        getPaginationRowModel: getPaginationRowModel(),
         getCoreRowModel: getCoreRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
         onColumnFiltersChange: setColumnFilters,
+        onPaginationChange: setPagination,
+        autoResetPageIndex: false,
     })
 
     const completed = useReactTable({
@@ -282,6 +296,15 @@ function Pickup() {
                                 </Suspense>
                             </tbody>
                         </table>
+                        <div className="flex gap-2 justify-center">
+                            <button onClick={() => inProgress.previousPage()} disabled={!inProgress.getCanPreviousPage()}>
+                                <ChevronLeft />
+                            </button>
+                            <h4>{pagination.pageIndex + 1}</h4>
+                            <button onClick={() => inProgress.nextPage()} disabled={!inProgress.getCanNextPage()}>
+                                <ChevronRight />
+                            </button>
+                        </div>
                     </Suspense>
                     <h2 className="text-xl font-semibold text-foreground tracking-tight">
                         Completed Orders

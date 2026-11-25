@@ -220,8 +220,11 @@ function Pickup() {
         },
     ], [])
 
+    const pendingData = useMemo(() => data.filter(detail => !detail.isPickedUp), [])
+    const completedData = useMemo(() => data.filter(detail => detail.isPickedUp), [])
+
     const inProgress = useReactTable({
-        data: data.filter(detail => detail.isPickedUp == false),
+        data: pendingData,
         columns: columns,
         state: {
             columnFilters,
@@ -236,7 +239,7 @@ function Pickup() {
     })
 
     const completed = useReactTable({
-        data: data.filter(detail => detail.isPickedUp == true),
+        data: completedData,
         columns: columns,
         state: {
             columnFilters,
@@ -300,7 +303,7 @@ function Pickup() {
                             <button onClick={() => inProgress.previousPage()} disabled={!inProgress.getCanPreviousPage()}>
                                 <ChevronLeft />
                             </button>
-                            <h4>{pagination.pageIndex + 1}</h4>
+                            <h4>{inProgress.getState().pagination.pageIndex + 1}</h4>
                             <button onClick={() => inProgress.nextPage()} disabled={!inProgress.getCanNextPage()}>
                                 <ChevronRight />
                             </button>
